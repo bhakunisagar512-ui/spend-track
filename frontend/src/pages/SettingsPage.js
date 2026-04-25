@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import themeModule from '../tailwindTheme';
 
-const T = {
-  bg: '#0e0f12', bg2: '#16181d', bg3: '#1c1e24', card: '#1e2028',
-  border: '#2a2c38', accent: '#7c6dfa', accent2: '#00d4a0',
-  text: '#eeeef5', text2: '#8a8aa8', text3: '#484860', danger: '#ff5f5f', warn: '#f5a623',
-};
+const { appTheme: T } = themeModule;
 
 export default function SettingsPage() {
   const { user, logout, updateApiKey } = useAuth();
@@ -35,10 +32,10 @@ export default function SettingsPage() {
   const label = { fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', color: T.text3, textTransform: 'uppercase', marginBottom: 10, display: 'block' };
 
   return (
-    <div style={{ background: T.bg, minHeight: '100vh', fontFamily: "'Syne', sans-serif", color: T.text }}>
+    <div className="bg-app-bg min-h-screen" style={{ fontFamily: T.fonts.display, color: T.text }}>
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '24px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
-          <button onClick={() => navigate('/')} style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 8, color: T.text2, padding: '6px 14px', cursor: 'pointer', fontFamily: "'Syne', sans-serif", fontSize: 13 }}>
+          <button onClick={() => navigate('/')} style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 8, color: T.text2, padding: '6px 14px', cursor: 'pointer', fontFamily: T.fonts.display, fontSize: 13 }}>
             ← Back
           </button>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: T.text }}>Settings</h1>
@@ -75,17 +72,17 @@ export default function SettingsPage() {
             value={apiKey}
             onChange={e => setApiKey(e.target.value)}
             placeholder="Paste your Gemini API key..."
-            style={{ width: '100%', background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 10, padding: '12px 14px', color: T.text, fontFamily: "'DM Mono', monospace", fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 12 }}
+            style={{ width: '100%', background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 10, padding: '12px 14px', color: T.text, fontFamily: T.fonts.mono, fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 12 }}
           />
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <button onClick={handleSaveKey} disabled={saving}
-              style={{ background: T.accent, border: 'none', borderRadius: 10, padding: '10px 22px', color: '#fff', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>
+              style={{ background: T.accent, border: 'none', borderRadius: 10, padding: '10px 22px', color: '#fff', fontFamily: T.fonts.display, fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>
               {saving ? 'Saving...' : 'Save Key'}
             </button>
             {saved && <span style={{ fontSize: 13, color: T.accent2 }}>✓ Saved successfully!</span>}
             {apiKey && !saved && (
               <button onClick={() => { setApiKey(''); updateApiKey(''); }}
-                style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 10, padding: '10px 16px', color: T.text3, fontFamily: "'Syne', sans-serif", fontSize: 13, cursor: 'pointer' }}>
+                style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 10, padding: '10px 16px', color: T.text3, fontFamily: T.fonts.display, fontSize: 13, cursor: 'pointer' }}>
                 Clear Key
               </button>
             )}
@@ -102,7 +99,7 @@ export default function SettingsPage() {
           <span style={label}>Session</span>
           <p style={{ fontSize: 13, color: T.text2, marginBottom: 14 }}>Sign out of your account on this device.</p>
           <button onClick={handleLogout}
-            style={{ background: T.danger + '18', border: `1px solid ${T.danger}44`, borderRadius: 10, padding: '10px 22px', color: T.danger, fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            style={{ background: T.danger + '18', border: `1px solid ${T.danger}44`, borderRadius: 10, padding: '10px 22px', color: T.danger, fontFamily: T.fonts.display, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
             Sign Out
           </button>
         </div>

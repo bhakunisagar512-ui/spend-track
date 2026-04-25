@@ -2,12 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
+import themeModule from '../tailwindTheme';
 
-const T = {
-  bg: '#0e0f12', bg2: '#16181d', bg3: '#1c1e24', card: '#1e2028',
-  border: '#2a2c38', accent: '#7c6dfa', accent2: '#00d4a0',
-  text: '#eeeef5', text2: '#8a8aa8', text3: '#484860', danger: '#ff5f5f',
-};
+const { appTheme: T } = themeModule;
 
 export default function AuthPage() {
   const [mode, setMode] = useState('login');
@@ -46,12 +43,12 @@ export default function AuthPage() {
   const inp = {
     width: '100%', background: T.bg3, border: `1px solid ${T.border}`,
     borderRadius: 10, padding: '12px 14px', color: T.text,
-    fontFamily: "'Syne', sans-serif", fontSize: 14, outline: 'none',
+    fontFamily: T.fonts.display, fontSize: 14, outline: 'none',
     boxSizing: 'border-box', marginBottom: 12,
   };
 
   return (
-    <div style={{ background: T.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Syne', sans-serif", padding: 20 }}>
+    <div className="bg-app-bg min-h-screen px-5 py-5" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: T.fonts.display }}>
       <div style={{ width: '100%', maxWidth: 420 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-1px', color: T.text }}>
@@ -64,7 +61,7 @@ export default function AuthPage() {
           <div style={{ display: 'flex', background: T.bg3, borderRadius: 10, padding: 4, marginBottom: 24 }}>
             {['login', 'register'].map(m => (
               <button key={m} onClick={() => { setMode(m); setError(''); }}
-                style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: 13, background: mode === m ? T.accent : 'transparent', color: mode === m ? '#fff' : T.text2, transition: 'all 0.2s' }}>
+                style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: T.fonts.display, fontWeight: 600, fontSize: 13, background: mode === m ? T.accent : 'transparent', color: mode === m ? '#fff' : T.text2, transition: 'all 0.2s' }}>
                 {m === 'login' ? 'Sign In' : 'Sign Up'}
               </button>
             ))}
@@ -86,7 +83,7 @@ export default function AuthPage() {
             <input style={{ ...inp, marginBottom: 20 }} type="password" placeholder="Password (min 6 chars)" value={form.password}
               onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required />
             <button type="submit" disabled={loading}
-              style={{ width: '100%', background: T.accent, border: 'none', borderRadius: 10, padding: '13px 0', color: '#fff', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, marginBottom: 16 }}>
+              style={{ width: '100%', background: T.accent, border: 'none', borderRadius: 10, padding: '13px 0', color: '#fff', fontFamily: T.fonts.display, fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, marginBottom: 16 }}>
               {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
             </button>
           </form>

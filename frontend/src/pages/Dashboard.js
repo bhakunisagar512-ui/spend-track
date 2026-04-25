@@ -5,14 +5,11 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { useAuth } from '../context/AuthContext';
 import { expensesAPI, budgetsAPI } from '../api';
 import { parseExpense, askGemini, CAT_COLORS, CAT_ICONS, fmt } from '../utils/gemini';
+import themeModule from '../tailwindTheme';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
-const T = {
-  bg: '#0e0f12', bg2: '#16181d', bg3: '#1c1e24', card: '#1e2028',
-  border: '#2a2c38', accent: '#7c6dfa', accent2: '#00d4a0', warn: '#f5a623', danger: '#ff5f5f',
-  text: '#eeeef5', text2: '#8a8aa8', text3: '#484860',
-};
+const { appTheme: T } = themeModule;
 
 function StatCard({ label, value, sub, subColor }) {
   return (
@@ -143,7 +140,7 @@ export default function Dashboard() {
   const barOpts = { ...chartOpts, scales: { x: { ticks: { color: '#484860', font: { size: 10 }, maxRotation: 45 }, grid: { display: false } }, y: { ticks: { color: '#484860', font: { size: 10 }, callback: v => fmt(v) }, grid: { color: '#2a2c3844' } } } };
 
   const s = {
-    wrap: { background: T.bg, minHeight: '100vh', fontFamily: "'Syne', sans-serif", color: T.text, paddingBottom: 40 },
+    wrap: { background: T.bg, minHeight: '100vh', fontFamily: T.fonts.display, color: T.text, paddingBottom: 40 },
     topbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: `1px solid ${T.border}` },
     body: { padding: '0 20px', maxWidth: 1100, margin: '0 auto' },
     card: { background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 20, marginBottom: 16 },
@@ -164,12 +161,12 @@ export default function Dashboard() {
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
-            style={{ background: T.bg3, border: `1px solid ${T.border}`, color: T.text, padding: '6px 10px', borderRadius: 8, fontFamily: "'Syne', sans-serif", fontSize: 12, cursor: 'pointer' }}>
+            style={{ background: T.bg3, border: `1px solid ${T.border}`, color: T.text, padding: '6px 10px', borderRadius: 8, fontFamily: T.fonts.display, fontSize: 12, cursor: 'pointer' }}>
             <option value="">All time</option>
             {months.map(m => <option key={m} value={m}>{new Date(m + '-01').toLocaleString('default', { month: 'long', year: 'numeric' })}</option>)}
           </select>
           <button onClick={() => navigate('/settings')}
-            style={{ background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 8, color: user?.gemini_api_key ? T.accent2 : T.warn, padding: '6px 12px', cursor: 'pointer', fontFamily: "'Syne', sans-serif", fontSize: 12 }}>
+            style={{ background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 8, color: user?.gemini_api_key ? T.accent2 : T.warn, padding: '6px 12px', cursor: 'pointer', fontFamily: T.fonts.display, fontSize: 12 }}>
             {user?.gemini_api_key ? '⚙ AI On' : '⚙ Set Key'}
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -194,9 +191,9 @@ export default function Dashboard() {
           <div style={{ display: 'flex', gap: 10 }}>
             <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addExpense()} disabled={parsing}
               placeholder='e.g. "250 banana shake" or "500 uber"'
-              style={{ flex: 1, background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 10, padding: '13px 15px', color: T.text, fontFamily: "'DM Mono', monospace", fontSize: 14, outline: 'none' }} />
+              style={{ flex: 1, background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 10, padding: '13px 15px', color: T.text, fontFamily: T.fonts.mono, fontSize: 14, outline: 'none' }} />
             <button onClick={addExpense} disabled={parsing}
-              style={{ background: T.accent, border: 'none', borderRadius: 10, padding: '0 22px', color: '#fff', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 14, cursor: parsing ? 'not-allowed' : 'pointer', opacity: parsing ? 0.5 : 1, height: 48, whiteSpace: 'nowrap' }}>
+              style={{ background: T.accent, border: 'none', borderRadius: 10, padding: '0 22px', color: '#fff', fontFamily: T.fonts.display, fontWeight: 700, fontSize: 14, cursor: parsing ? 'not-allowed' : 'pointer', opacity: parsing ? 0.5 : 1, height: 48, whiteSpace: 'nowrap' }}>
               {parsing ? 'Parsing...' : '+ Add'}
             </button>
           </div>
@@ -257,7 +254,7 @@ export default function Dashboard() {
                         <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: T.text }}>{exp.description}</div>
                         <div style={{ fontSize: 11, color: T.text3 }}>{exp.category} · {new Date(exp.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
                       </div>
-                      <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: T.danger, flexShrink: 0 }}>-{fmt(parseFloat(exp.amount))}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, fontFamily: T.fonts.mono, color: T.danger, flexShrink: 0 }}>-{fmt(parseFloat(exp.amount))}</div>
                       <button onClick={() => deleteExpense(exp.id)} style={{ background: 'none', border: 'none', color: T.text3, cursor: 'pointer', fontSize: 12, padding: '0 2px', opacity: 0.6 }}>✕</button>
                     </div>
                   ))
@@ -276,7 +273,7 @@ export default function Dashboard() {
                       <div key={c.category}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                           <span style={{ color: T.text2 }}>{CAT_ICONS[c.category] || '📦'} {c.category}</span>
-                          <span style={{ fontFamily: "'DM Mono', monospace", color: T.text2 }}>{fmt(parseFloat(c.total))} · {pct.toFixed(0)}%</span>
+                          <span style={{ fontFamily: T.fonts.mono, color: T.text2 }}>{fmt(parseFloat(c.total))} · {pct.toFixed(0)}%</span>
                         </div>
                         <div style={{ height: 4, background: T.bg3, borderRadius: 3, overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: `${pct}%`, background: CAT_COLORS[c.category] || T.accent, borderRadius: 3, transition: 'width 0.5s' }} />
@@ -303,7 +300,7 @@ export default function Dashboard() {
                 <div key={cat} style={{ background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{CAT_ICONS[cat]} {cat}</span>
-                    {budget > 0 && <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color }}>{Math.round(pct)}%</span>}
+                    {budget > 0 && <span style={{ fontSize: 11, fontFamily: T.fonts.mono, color }}>{Math.round(pct)}%</span>}
                   </div>
                   {budget > 0 && (
                     <div style={{ height: 4, background: T.bg2, borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
@@ -314,9 +311,9 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', gap: 6 }}>
                     <input type="number" placeholder="₹ limit" value={budgetEdit[cat] || ''}
                       onChange={e => setBudgetEdit(p => ({ ...p, [cat]: e.target.value }))}
-                      style={{ flex: 1, background: T.bg2, border: `1px solid ${T.border}`, borderRadius: 7, padding: '5px 8px', color: T.text, fontFamily: "'DM Mono', monospace", fontSize: 12, outline: 'none', minWidth: 0 }} />
+                      style={{ flex: 1, background: T.bg2, border: `1px solid ${T.border}`, borderRadius: 7, padding: '5px 8px', color: T.text, fontFamily: T.fonts.mono, fontSize: 12, outline: 'none', minWidth: 0 }} />
                     <button onClick={() => saveBudget(cat)}
-                      style={{ background: T.bg2, border: `1px solid ${T.border}`, borderRadius: 7, padding: '5px 10px', color: T.text2, cursor: 'pointer', fontSize: 11, fontFamily: "'Syne', sans-serif" }}>
+                      style={{ background: T.bg2, border: `1px solid ${T.border}`, borderRadius: 7, padding: '5px 10px', color: T.text2, cursor: 'pointer', fontSize: 11, fontFamily: T.fonts.display }}>
                       Set
                     </button>
                   </div>
@@ -336,9 +333,9 @@ export default function Dashboard() {
           <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
             <input value={askQ} onChange={e => setAskQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAsk()} disabled={aiLoading}
               placeholder="Ask: Where am I overspending? How can I save more?"
-              style={{ flex: 1, background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 10, padding: '12px 14px', color: T.text, fontFamily: "'Syne', sans-serif", fontSize: 13, outline: 'none' }} />
+              style={{ flex: 1, background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 10, padding: '12px 14px', color: T.text, fontFamily: T.fonts.display, fontSize: 13, outline: 'none' }} />
             <button onClick={doAsk} disabled={aiLoading || !user?.gemini_api_key}
-              style={{ background: T.bg3, border: `1px solid ${T.accent}`, color: T.accent, borderRadius: 10, padding: '12px 18px', fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700, cursor: (!user?.gemini_api_key || aiLoading) ? 'not-allowed' : 'pointer', opacity: (!user?.gemini_api_key || aiLoading) ? 0.4 : 1, whiteSpace: 'nowrap' }}>
+              style={{ background: T.bg3, border: `1px solid ${T.accent}`, color: T.accent, borderRadius: 10, padding: '12px 18px', fontFamily: T.fonts.display, fontSize: 13, fontWeight: 700, cursor: (!user?.gemini_api_key || aiLoading) ? 'not-allowed' : 'pointer', opacity: (!user?.gemini_api_key || aiLoading) ? 0.4 : 1, whiteSpace: 'nowrap' }}>
               {aiLoading ? 'Thinking...' : 'Ask AI'}
             </button>
           </div>
