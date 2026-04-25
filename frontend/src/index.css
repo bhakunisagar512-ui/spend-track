@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: theme('colors.app.bg');
+    color: theme('colors.app.text');
+    font-family: theme('fontFamily.display');
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  input::placeholder {
+    color: theme('colors.app.text3');
+  }
+
+  input:focus {
+    border-color: theme('colors.app.accent') !important;
+  }
+
+  select option {
+    background: theme('colors.app.bg3');
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: theme('colors.app.border');
+    border-radius: 4px;
+  }
+}
