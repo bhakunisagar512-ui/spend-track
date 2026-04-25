@@ -1,0 +1,111 @@
+# services:
+#   db:
+#     image: postgres:16-alpine
+#     environment:
+#       POSTGRES_USER: username
+#       POSTGRES_PASSWORD: password
+#       POSTGRES_DB: spendai_db
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#     ports:
+#       - "5432:5432"
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U username"]
+#       interval: 5s
+#       timeout: 5s
+#       retries: 5
+
+#   backend:
+#     image: node:20-alpine
+#     working_dir: /app
+#     env_file:
+#       - ./backend/.env
+#     volumes:
+#       - ./backend:/app
+#       - backend_modules:/app/node_modules
+#     ports:
+#       - "5000:5000"
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#     command: sh -c "npm install && chmod -R +x node_modules/.bin/ && npm run dev"
+
+#   frontend:
+#     image: node:20-alpine
+#     working_dir: /app
+#     env_file:
+#       - ./frontend/.env
+#     volumes:
+#       - ./frontend:/app
+#       - frontend_modules:/app/node_modules
+#     ports:
+#       - "3000:3000"
+#     depends_on:
+#       - backend
+#     command: sh -c "npm install && chmod -R +x node_modules/.bin/ && npm start"
+
+# volumes:
+#   postgres_data:
+#   backend_modules:
+#   frontend_modules:
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: username
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: spendai_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U username"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - spendai_network
+
+  backend:
+    image: node:20-alpine
+    working_dir: /app
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+      - backend_modules:/app/node_modules
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npm install && chmod -R +x node_modules/.bin/ && npm run dev"
+    networks:
+      - spendai_network
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    env_file:
+      - ./frontend/.env
+    volumes:
+      - ./frontend:/app
+      - frontend_modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    command: sh -c "npm install && chmod -R +x node_modules/.bin/ && npm start"
+    networks:
+      - spendai_network
+
+volumes:
+  postgres_data:
+  backend_modules:
+  frontend_modules:
+
+networks:
+  spendai_network:
+    driver: bridge

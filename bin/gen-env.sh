@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+echo "Generating .env files (if missing)..."
+
+if [ -f "$ROOT_DIR/frontend/.env" ]; then
+  echo "frontend/.env exists — skipping"
+else
+  if [ -f "$ROOT_DIR/frontend/.env.example" ]; then
+    cp "$ROOT_DIR/frontend/.env.example" "$ROOT_DIR/frontend/.env"
+    echo "Created frontend/.env from frontend/.env.example"
+  else
+    echo "No frontend/.env.example found — create frontend/.env manually"
+  fi
+fi
+
+if [ -f "$ROOT_DIR/backend/.env" ]; then
+  echo "backend/.env exists — skipping"
+else
+  if [ -f "$ROOT_DIR/backend/.env.example" ]; then
+    cp "$ROOT_DIR/backend/.env.example" "$ROOT_DIR/backend/.env"
+    echo "Created backend/.env from backend/.env.example"
+  else
+    echo "No backend/.env.example found — create backend/.env manually"
+  fi
+fi
+
+echo "Generation complete. Edit the created files to customize values."
