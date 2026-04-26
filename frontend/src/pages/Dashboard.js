@@ -131,13 +131,13 @@ export default function Dashboard() {
       datasets: [{
         label: 'Spent', borderRadius: 6, borderWidth: 1.5,
         data: days.map(day => { const found = stats.daily?.find(d => d.day === day); return found ? parseFloat(found.total) : 0; }),
-        backgroundColor: '#7c6dfa55', borderColor: '#7c6dfa',
+        backgroundColor: `${T.accent}55`, borderColor: T.accent,
       }],
     };
   })();
 
   const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
-  const barOpts = { ...chartOpts, scales: { x: { ticks: { color: '#484860', font: { size: 10 }, maxRotation: 45 }, grid: { display: false } }, y: { ticks: { color: '#484860', font: { size: 10 }, callback: v => fmt(v) }, grid: { color: '#2a2c3844' } } } };
+  const barOpts = { ...chartOpts, scales: { x: { ticks: { color: T.text3, font: { size: 10 }, maxRotation: 45 }, grid: { display: false } }, y: { ticks: { color: T.text3, font: { size: 10 }, callback: v => fmt(v) }, grid: { color: `${T.border}44` } } } };
 
   const s = {
     wrap: { background: T.bg, minHeight: '100vh', fontFamily: T.fonts.display, color: T.text, paddingBottom: 40 },
@@ -181,7 +181,7 @@ export default function Dashboard() {
 
       <div style={s.body}>
         {budgetAlerts.length > 0 && (
-          <div style={{ background: budgetAlerts[0].type === 'danger' ? '#ff5f5f18' : '#f5a62318', border: `1px solid ${budgetAlerts[0].type === 'danger' ? T.danger : T.warn}44`, borderRadius: 10, padding: '10px 14px', marginTop: 14, fontSize: 13, color: budgetAlerts[0].type === 'danger' ? T.danger : T.warn }}>
+          <div style={{ background: `${budgetAlerts[0].type === 'danger' ? T.danger : T.warn}18`, border: `1px solid ${budgetAlerts[0].type === 'danger' ? T.danger : T.warn}44`, borderRadius: 10, padding: '10px 14px', marginTop: 14, fontSize: 13, color: budgetAlerts[0].type === 'danger' ? T.danger : T.warn }}>
             {budgetAlerts.map(a => a.msg).join('  ·  ')}
           </div>
         )}
@@ -326,7 +326,7 @@ export default function Dashboard() {
         <div style={{ ...s.card, marginTop: 0 }}>
           <div style={s.panelTitle}>Ask AI About Your Spending</div>
           {!user?.gemini_api_key && (
-            <div style={{ fontSize: 12, color: T.warn, marginBottom: 12, padding: '8px 12px', background: '#f5a62312', borderRadius: 8, border: `1px solid ${T.warn}33` }}>
+            <div style={{ fontSize: 12, color: T.warn, marginBottom: 12, padding: '8px 12px', background: `${T.warn}12`, borderRadius: 8, border: `1px solid ${T.warn}33` }}>
               Set your Gemini API key in Settings to enable AI insights.
             </div>
           )}
