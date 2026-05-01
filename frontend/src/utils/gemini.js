@@ -67,6 +67,14 @@ export async function askGemini(question, stats, budgets, geminiApiKey) {
   }
 }
 
-export const CAT_COLORS = { Food:'#ff8c42', Transport:'#7c6dfa', Shopping:'#00d4a0', Health:'#ff5f5f', Entertainment:'#f5c518', Recharge:'#36b4f7', Other:'#a78bfa' };
+export const CAT_COLORS = {
+  Food: '#d08a3c',
+  Transport: '#4b6a88',
+  Shopping: '#2f8f6b',
+  Health: '#c65b4b',
+  Entertainment: '#b59a52',
+  Recharge: '#5d8f87',
+  Other: '#8c9b93',
+};
 export { CAT_ICONS };
 export function fmt(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }

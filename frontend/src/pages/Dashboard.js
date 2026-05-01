@@ -11,6 +11,10 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 
 const { appTheme: T } = themeModule;
 
+// ─── Gemini API key lives in .env, never in user state ───────────────────────
+// In your .env file: REACT_APP_GEMINI_API_KEY=your_key_here
+const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY;
+
 function StatCard({ label, value, sub, subColor }) {
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: '16px 18px' }}>
@@ -22,6 +26,7 @@ function StatCard({ label, value, sub, subColor }) {
 }
 
 export default function Dashboard() {
+  const budgetCategories = ['Food', 'Transport', 'Shopping', 'Health', 'Entertainment', 'Recharge', 'Education', 'Grocerries', 'Other'];
   const { user } = useAuth();
   const navigate = useNavigate();
   const [expenses, setExpenses] = useState([]);
@@ -34,6 +39,9 @@ export default function Dashboard() {
   const [aiResp, setAiResp] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [budgetEdit, setBudgetEdit] = useState({});
+  const [newBudgetCategory, setNewBudgetCategory] = useState('Food');
+  const [newBudgetAmount, setNewBudgetAmount] = useState('');
+  const [budgetSaving, setBudgetSaving] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
   const months = [...new Set(expenses.map(e => e.date?.slice(0, 7)))].filter(Boolean).sort().reverse();
@@ -59,12 +67,57 @@ export default function Dashboard() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // ─── Local (rule-based) parser — used for all known categories ───────────────
+  // Falls back to a simple "amount + description" split; category defaults to 'Other'
+  const parseLocal = (text) => {
+    const trimmed = text.trim();
+    const match = trimmed.match(/^(\d+(?:\.\d+)?)\s+(.+)$/);
+    if (!match) return null;
+    const [, amountStr, description] = match;
+    const amount = parseFloat(amountStr);
+    if (isNaN(amount) || amount <= 0) return null;
+
+    // Simple keyword → category mapping (extend as needed)
+    const lc = description.toLowerCase();
+    let category = 'Other';
+    if (/food|chai|coffee|lunch|dinner|breakfast|snack|restaurant|eat|meal|swiggy|zomato/.test(lc)) category = 'Food';
+    else if (/uber|ola|bus|metro|auto|taxi|petrol|fuel|travel|train|flight/.test(lc)) category = 'Transport';
+    else if (/amazon|flipkart|shop|cloth|dress|shirt|shoe|buy|order/.test(lc)) category = 'Shopping';
+    else if (/doctor|medicine|hospital|pharmacy|health|clinic|med/.test(lc)) category = 'Health';
+    else if (/netflix|movie|game|concert|entertain|show|ott|prime/.test(lc)) category = 'Entertainment';
+    else if (/recharge|mobile|sim|internet|broadband|airtel|jio|vi/.test(lc)) category = 'Recharge';
+    else if (/course|book|class|tuition|school|college|education|learn/.test(lc)) category = 'Education';
+    else if (/grocer|vegetable|fruit|milk|sabzi|kirana|grocery/.test(lc)) category = 'Grocerries';
+
+    return {
+      amount,
+      description,
+      category,
+      date: new Date().toISOString().slice(0, 10),
+      emoji: CAT_ICONS[category] || '📦',
+    };
+  };
+
+  // ─── Add expense: use Gemini ONLY when category resolves to 'Other' ──────────
   const addExpense = async () => {
     if (!input.trim() || parsing) return;
     setParsing(true);
     try {
-      const parsed = await parseExpense(input, user?.gemini_api_key);
-      if (!parsed) { alert('Please enter like: "250 chai" or "500 uber"'); return; }
+      // Step 1: fast local parse
+      let parsed = parseLocal(input);
+
+      if (!parsed) {
+        alert('Please enter like: "250 chai" or "500 uber"');
+        return;
+      }
+
+      // Step 2: only call Gemini when local parser couldn't determine a specific category
+      if (parsed.category === 'Other' && GEMINI_API_KEY) {
+        const aiParsed = await parseExpense(input, GEMINI_API_KEY);
+        if (aiParsed) parsed = aiParsed;         // use AI result if valid
+        // if AI also returns null / fails, we keep the local parse (category = 'Other')
+      }
+
       await expensesAPI.create(parsed);
       setInput('');
       fetchAll();
@@ -89,16 +142,35 @@ export default function Dashboard() {
     if (isNaN(val) || val <= 0) return;
     try {
       await budgetsAPI.upsert({ category: cat, amount: val });
+      setBudgetEdit(p => ({ ...p, [cat]: '' }));
       fetchAll();
     } catch (err) {
       alert('Failed to save budget');
     }
   };
 
+  const addBudget = async () => {
+    const amount = parseFloat(newBudgetAmount);
+    if (!newBudgetCategory || isNaN(amount) || amount <= 0 || budgetSaving) return;
+    setBudgetSaving(true);
+    try {
+      await budgetsAPI.upsert({ category: newBudgetCategory, amount });
+      setNewBudgetAmount('');
+      const nextCategory = budgetCategories.find(cat => !budgets[cat] && cat !== newBudgetCategory) || newBudgetCategory;
+      setNewBudgetCategory(nextCategory);
+      fetchAll();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to add budget');
+    } finally {
+      setBudgetSaving(false);
+    }
+  };
+
+  // ─── "Ask AI" uses env key, not user key ─────────────────────────────────────
   const doAsk = async () => {
-    if (!askQ.trim()) return;
+    if (!askQ.trim() || !GEMINI_API_KEY) return;
     setAiLoading(true); setAiResp('');
-    const r = await askGemini(askQ, stats, budgets, user?.gemini_api_key);
+    const r = await askGemini(askQ, stats, budgets, GEMINI_API_KEY);
     setAiResp(r); setAiLoading(false); setAskQ('');
   };
 
@@ -114,6 +186,11 @@ export default function Dashboard() {
     if (pct >= 80) return [{ msg: `${cat} at ${Math.round(pct)}% — ${fmt(bud - s)} left`, type: 'warn' }];
     return [];
   });
+
+  const budgetCards = [
+    ...budgetCategories.filter(cat => budgets[cat]),
+    ...Object.keys(budgets).filter(cat => !budgetCategories.includes(cat)),
+  ];
 
   const donutData = {
     labels: stats.byCategory?.map(c => c.category) || [],
@@ -131,13 +208,13 @@ export default function Dashboard() {
       datasets: [{
         label: 'Spent', borderRadius: 6, borderWidth: 1.5,
         data: days.map(day => { const found = stats.daily?.find(d => d.day === day); return found ? parseFloat(found.total) : 0; }),
-        backgroundColor: '#7c6dfa55', borderColor: '#7c6dfa',
+        backgroundColor: `${T.accent}55`, borderColor: T.accent,
       }],
     };
   })();
 
   const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
-  const barOpts = { ...chartOpts, scales: { x: { ticks: { color: '#484860', font: { size: 10 }, maxRotation: 45 }, grid: { display: false } }, y: { ticks: { color: '#484860', font: { size: 10 }, callback: v => fmt(v) }, grid: { color: '#2a2c3844' } } } };
+  const barOpts = { ...chartOpts, scales: { x: { ticks: { color: T.text3, font: { size: 10 }, maxRotation: 45 }, grid: { display: false } }, y: { ticks: { color: T.text3, font: { size: 10 }, callback: v => fmt(v) }, grid: { color: `${T.border}44` } } } };
 
   const s = {
     wrap: { background: T.bg, minHeight: '100vh', fontFamily: T.fonts.display, color: T.text, paddingBottom: 40 },
@@ -155,9 +232,10 @@ export default function Dashboard() {
 
   return (
     <div style={s.wrap}>
+      {/* ── Top bar: removed "Set Key" / AI On button ── */}
       <div style={s.topbar}>
         <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.5px' }}>
-          spend<span style={{ color: T.accent }}>AI</span>
+          spend &<span style={{ color: T.accent }}>Track</span>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
@@ -165,9 +243,10 @@ export default function Dashboard() {
             <option value="">All time</option>
             {months.map(m => <option key={m} value={m}>{new Date(m + '-01').toLocaleString('default', { month: 'long', year: 'numeric' })}</option>)}
           </select>
+          {/* Settings button kept for other settings, not for Gemini key */}
           <button onClick={() => navigate('/settings')}
-            style={{ background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 8, color: user?.gemini_api_key ? T.accent2 : T.warn, padding: '6px 12px', cursor: 'pointer', fontFamily: T.fonts.display, fontSize: 12 }}>
-            {user?.gemini_api_key ? '⚙ AI On' : '⚙ Set Key'}
+            style={{ background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 8, color: T.text2, padding: '6px 12px', cursor: 'pointer', fontFamily: T.fonts.display, fontSize: 12 }}>
+            ⚙ Settings
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {user?.avatar_url
@@ -181,11 +260,12 @@ export default function Dashboard() {
 
       <div style={s.body}>
         {budgetAlerts.length > 0 && (
-          <div style={{ background: budgetAlerts[0].type === 'danger' ? '#ff5f5f18' : '#f5a62318', border: `1px solid ${budgetAlerts[0].type === 'danger' ? T.danger : T.warn}44`, borderRadius: 10, padding: '10px 14px', marginTop: 14, fontSize: 13, color: budgetAlerts[0].type === 'danger' ? T.danger : T.warn }}>
+          <div style={{ background: `${budgetAlerts[0].type === 'danger' ? T.danger : T.warn}18`, border: `1px solid ${budgetAlerts[0].type === 'danger' ? T.danger : T.warn}44`, borderRadius: 10, padding: '10px 14px', marginTop: 14, fontSize: 13, color: budgetAlerts[0].type === 'danger' ? T.danger : T.warn }}>
             {budgetAlerts.map(a => a.msg).join('  ·  ')}
           </div>
         )}
 
+        {/* ── Log Expense ── */}
         <div style={{ marginTop: 16, background: T.bg2, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20 }}>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', color: T.text3, textTransform: 'uppercase', marginBottom: 10 }}>Log Expense</div>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -197,12 +277,16 @@ export default function Dashboard() {
               {parsing ? 'Parsing...' : '+ Add'}
             </button>
           </div>
-          <div style={{ fontSize: 11, color: user?.gemini_api_key ? T.accent2 : T.text3, marginTop: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: user?.gemini_api_key ? T.accent2 : T.text3, display: 'inline-block' }} />
-            {user?.gemini_api_key ? 'Gemini AI parsing active' : 'Using local parsing — add API key in Settings'}
+          {/* Status line: shows AI active only when env key is set */}
+          <div style={{ fontSize: 11, color: GEMINI_API_KEY ? T.accent2 : T.text3, marginTop: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: GEMINI_API_KEY ? T.accent2 : T.text3, display: 'inline-block' }} />
+            {GEMINI_API_KEY
+              ? 'AI assist active — called only for uncategorised expenses'
+              : 'Rule-based parsing active'}
           </div>
         </div>
 
+        {/* ── Stat Cards ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 10, marginTop: 16 }}>
           <StatCard label="Total Spent" value={fmt(stats.total)} sub={`${stats.count} expenses`} />
           <StatCard label="This Month" value={fmt(expenses.filter(e => e.date?.startsWith(new Date().toISOString().slice(0, 7))).reduce((s, e) => s + parseFloat(e.amount), 0))} sub={new Date().toLocaleString('default', { month: 'long' })} />
@@ -210,6 +294,7 @@ export default function Dashboard() {
           <StatCard label="Avg / Day" value={fmt(avgPerDay)} sub="daily average" />
         </div>
 
+        {/* ── Charts + Recent ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 14, marginTop: 16 }}>
           <div>
             <div style={s.card}>
@@ -287,10 +372,42 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* ── Budget Limits ── */}
         <div style={{ ...s.card, marginTop: 0 }}>
           <div style={s.panelTitle}>Budget Limits</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) auto', gap: 10, marginBottom: 14 }}>
+            <select
+              value={newBudgetCategory}
+              onChange={e => setNewBudgetCategory(e.target.value)}
+              style={{ background: T.bg3, border: `1px solid ${T.border}`, color: T.text, padding: '10px 12px', borderRadius: 9, fontFamily: T.fonts.display, fontSize: 13, cursor: 'pointer', minWidth: 0 }}
+            >
+              {budgetCategories.map(cat => (
+                <option key={cat} value={cat}>{CAT_ICONS[cat] || '📦'} {cat}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              placeholder="Budget limit"
+              value={newBudgetAmount}
+              onChange={e => setNewBudgetAmount(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addBudget()}
+              style={{ background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 9, padding: '10px 12px', color: T.text, fontFamily: T.fonts.mono, fontSize: 13, outline: 'none', minWidth: 0 }}
+            />
+            <button
+              onClick={addBudget}
+              disabled={budgetSaving}
+              style={{ background: T.accent, border: 'none', borderRadius: 9, padding: '0 16px', color: '#fff', fontFamily: T.fonts.display, fontWeight: 700, fontSize: 12, cursor: budgetSaving ? 'not-allowed' : 'pointer', opacity: budgetSaving ? 0.6 : 1, whiteSpace: 'nowrap' }}
+            >
+              {budgetSaving ? 'Adding...' : '+ Add Budget'}
+            </button>
+          </div>
+          {budgetCards.length === 0 && (
+            <div style={{ marginBottom: 14, padding: '12px 14px', background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 12, color: T.text2 }}>
+              No budgets added yet. Create one above and it will appear here with its limit.
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 10 }}>
-            {['Food', 'Transport', 'Shopping', 'Health', 'Entertainment', 'Recharge'].map(cat => {
+            {budgetCards.map(cat => {
               const catStat = stats.byCategory?.find(c => c.category === cat);
               const spent = catStat ? parseFloat(catStat.total) : 0;
               const budget = budgets[cat] || 0;
@@ -323,19 +440,20 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* ── Ask AI ── */}
         <div style={{ ...s.card, marginTop: 0 }}>
           <div style={s.panelTitle}>Ask AI About Your Spending</div>
-          {!user?.gemini_api_key && (
-            <div style={{ fontSize: 12, color: T.warn, marginBottom: 12, padding: '8px 12px', background: '#f5a62312', borderRadius: 8, border: `1px solid ${T.warn}33` }}>
-              Set your Gemini API key in Settings to enable AI insights.
+          {!GEMINI_API_KEY && (
+            <div style={{ fontSize: 12, color: T.warn, marginBottom: 12, padding: '8px 12px', background: `${T.warn}12`, borderRadius: 8, border: `1px solid ${T.warn}33` }}>
+              Gemini API key not configured. Add <code>REACT_APP_GEMINI_API_KEY</code> to your <code>.env</code> file.
             </div>
           )}
           <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
             <input value={askQ} onChange={e => setAskQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAsk()} disabled={aiLoading}
               placeholder="Ask: Where am I overspending? How can I save more?"
               style={{ flex: 1, background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 10, padding: '12px 14px', color: T.text, fontFamily: T.fonts.display, fontSize: 13, outline: 'none' }} />
-            <button onClick={doAsk} disabled={aiLoading || !user?.gemini_api_key}
-              style={{ background: T.bg3, border: `1px solid ${T.accent}`, color: T.accent, borderRadius: 10, padding: '12px 18px', fontFamily: T.fonts.display, fontSize: 13, fontWeight: 700, cursor: (!user?.gemini_api_key || aiLoading) ? 'not-allowed' : 'pointer', opacity: (!user?.gemini_api_key || aiLoading) ? 0.4 : 1, whiteSpace: 'nowrap' }}>
+            <button onClick={doAsk} disabled={aiLoading || !GEMINI_API_KEY}
+              style={{ background: T.bg3, border: `1px solid ${T.accent}`, color: T.accent, borderRadius: 10, padding: '12px 18px', fontFamily: T.fonts.display, fontSize: 13, fontWeight: 700, cursor: (!GEMINI_API_KEY || aiLoading) ? 'not-allowed' : 'pointer', opacity: (!GEMINI_API_KEY || aiLoading) ? 0.4 : 1, whiteSpace: 'nowrap' }}>
               {aiLoading ? 'Thinking...' : 'Ask AI'}
             </button>
           </div>

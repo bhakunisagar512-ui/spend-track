@@ -68,7 +68,7 @@ export default function AuthPage() {
           </div>
 
           {error && (
-            <div style={{ background: '#ff5f5f15', border: `1px solid ${T.danger}44`, borderRadius: 8, padding: '10px 14px', color: T.danger, fontSize: 13, marginBottom: 16 }}>
+            <div style={{ background: `${T.danger}15`, border: `1px solid ${T.danger}44`, borderRadius: 8, padding: '10px 14px', color: T.danger, fontSize: 13, marginBottom: 16 }}>
               {error}
             </div>
           )}
