@@ -22,6 +22,7 @@ function StatCard({ label, value, sub, subColor }) {
 }
 
 export default function Dashboard() {
+  const budgetCategories = ['Food', 'Transport', 'Shopping', 'Health', 'Entertainment', 'Recharge', 'Education', 'Grocerries', 'Other'];
   const { user } = useAuth();
   const navigate = useNavigate();
   const [expenses, setExpenses] = useState([]);
@@ -34,6 +35,9 @@ export default function Dashboard() {
   const [aiResp, setAiResp] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [budgetEdit, setBudgetEdit] = useState({});
+  const [newBudgetCategory, setNewBudgetCategory] = useState('Food');
+  const [newBudgetAmount, setNewBudgetAmount] = useState('');
+  const [budgetSaving, setBudgetSaving] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
   const months = [...new Set(expenses.map(e => e.date?.slice(0, 7)))].filter(Boolean).sort().reverse();
@@ -89,9 +93,27 @@ export default function Dashboard() {
     if (isNaN(val) || val <= 0) return;
     try {
       await budgetsAPI.upsert({ category: cat, amount: val });
+      setBudgetEdit(p => ({ ...p, [cat]: '' }));
       fetchAll();
     } catch (err) {
       alert('Failed to save budget');
+    }
+  };
+
+  const addBudget = async () => {
+    const amount = parseFloat(newBudgetAmount);
+    if (!newBudgetCategory || isNaN(amount) || amount <= 0 || budgetSaving) return;
+    setBudgetSaving(true);
+    try {
+      await budgetsAPI.upsert({ category: newBudgetCategory, amount });
+      setNewBudgetAmount('');
+      const nextCategory = budgetCategories.find(cat => !budgets[cat] && cat !== newBudgetCategory) || newBudgetCategory;
+      setNewBudgetCategory(nextCategory);
+      fetchAll();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to add budget');
+    } finally {
+      setBudgetSaving(false);
     }
   };
 
@@ -114,6 +136,11 @@ export default function Dashboard() {
     if (pct >= 80) return [{ msg: `${cat} at ${Math.round(pct)}% — ${fmt(bud - s)} left`, type: 'warn' }];
     return [];
   });
+
+  const budgetCards = [
+    ...budgetCategories.filter(cat => budgets[cat]),
+    ...Object.keys(budgets).filter(cat => !budgetCategories.includes(cat)),
+  ];
 
   const donutData = {
     labels: stats.byCategory?.map(c => c.category) || [],
@@ -157,7 +184,7 @@ export default function Dashboard() {
     <div style={s.wrap}>
       <div style={s.topbar}>
         <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.5px' }}>
-          spend<span style={{ color: T.accent }}>AI</span>
+          spend &<span style={{ color: T.accent }}>Track</span>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
@@ -289,8 +316,39 @@ export default function Dashboard() {
 
         <div style={{ ...s.card, marginTop: 0 }}>
           <div style={s.panelTitle}>Budget Limits</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) auto', gap: 10, marginBottom: 14 }}>
+            <select
+              value={newBudgetCategory}
+              onChange={e => setNewBudgetCategory(e.target.value)}
+              style={{ background: T.bg3, border: `1px solid ${T.border}`, color: T.text, padding: '10px 12px', borderRadius: 9, fontFamily: T.fonts.display, fontSize: 13, cursor: 'pointer', minWidth: 0 }}
+            >
+              {budgetCategories.map(cat => (
+                <option key={cat} value={cat}>{CAT_ICONS[cat] || '📦'} {cat}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              placeholder="Budget limit"
+              value={newBudgetAmount}
+              onChange={e => setNewBudgetAmount(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addBudget()}
+              style={{ background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 9, padding: '10px 12px', color: T.text, fontFamily: T.fonts.mono, fontSize: 13, outline: 'none', minWidth: 0 }}
+            />
+            <button
+              onClick={addBudget}
+              disabled={budgetSaving}
+              style={{ background: T.accent, border: 'none', borderRadius: 9, padding: '0 16px', color: '#fff', fontFamily: T.fonts.display, fontWeight: 700, fontSize: 12, cursor: budgetSaving ? 'not-allowed' : 'pointer', opacity: budgetSaving ? 0.6 : 1, whiteSpace: 'nowrap' }}
+            >
+              {budgetSaving ? 'Adding...' : '+ Add Budget'}
+            </button>
+          </div>
+          {budgetCards.length === 0 && (
+            <div style={{ marginBottom: 14, padding: '12px 14px', background: T.bg3, border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 12, color: T.text2 }}>
+              No budgets added yet. Create one above and it will appear here with its limit.
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 10 }}>
-            {['Food', 'Transport', 'Shopping', 'Health', 'Entertainment', 'Recharge'].map(cat => {
+            {budgetCards.map(cat => {
               const catStat = stats.byCategory?.find(c => c.category === cat);
               const spent = catStat ? parseFloat(catStat.total) : 0;
               const budget = budgets[cat] || 0;
