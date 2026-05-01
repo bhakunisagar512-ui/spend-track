@@ -281,8 +281,8 @@ export default function Dashboard() {
           <div style={{ fontSize: 11, color: GEMINI_API_KEY ? T.accent2 : T.text3, marginTop: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: GEMINI_API_KEY ? T.accent2 : T.text3, display: 'inline-block' }} />
             {GEMINI_API_KEY
-              ? 'AI assist active — called only for uncategorised expenses'
-              : 'Rule-based parsing active'}
+              ? 'AI assist active — for uncategorised expenses'
+              : 'Category parsing tool active'}
           </div>
         </div>
 
