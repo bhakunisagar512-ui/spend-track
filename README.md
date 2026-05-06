@@ -28,6 +28,7 @@ spendai/
     ├── .env.example
     └── package.json
 ```
+<img width="1845" height="935" alt="image" src="https://github.com/user-attachments/assets/4c9fe27f-c5e9-42a2-9f00-5a70864e5cdc" />
 
 ---
 
